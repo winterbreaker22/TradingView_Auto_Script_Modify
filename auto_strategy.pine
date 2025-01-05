@@ -8,7 +8,7 @@ gp0 = 'Backtest Settings'
 usefromDate = input.bool(defval = false, title = 'From', inline = 'From Date', group = gp0)
 fromDate = input.time(defval = timestamp('01 Jan 2023 00:00'), title = '', inline = 'From Date', group = gp0)
 usetoDate = input.bool(defval = false, title = 'To ', inline = 'To Date', group = gp0)
-toDate = input.time(defval = timestamp('01 Jul 2026 00:00'), title = '', inline = 'To Date', group = gp0)
+toDate = input.time(defval = timestamp('01 Jul 2024 00:00'), title = '', inline = 'To Date', group = gp0)
 bool dateFilterApproval = tif.is_in_date_range(usefromDate, fromDate, usetoDate, toDate)
 bgcolor(dateFilterApproval ? na : color.new(color.gray, 90), title = 'Time Window')
 
@@ -130,8 +130,8 @@ shortExit = switch
     not use_ats and use_rf => long_range
 
 
-plotshape(not use_rf ? na : long_range, title = 'Long RF', text = 'RF', color = color.new(color.green, 0), textcolor = color.new(color.white, 0), style = shape.labelup, location = location.belowbar, size = size.small)
-plotshape(not use_rf ? na : short_range, title = 'Short RF', text = 'RF', color = color.new(color.red, 0), textcolor = color.new(color.white, 0), style = shape.labeldown, location = location.abovebar, size = size.small)
+plotshape(not use_rf ? false : long_range, title = 'Long RF', text = 'RF', color = color.new(color.green, 0), textcolor = color.new(color.white, 0), style = shape.labelup, location = location.belowbar, size = size.small)
+plotshape(not use_rf ? false : short_range, title = 'Short RF', text = 'RF', color = color.new(color.red, 0), textcolor = color.new(color.white, 0), style = shape.labeldown, location = location.abovebar, size = size.small)
 
 plotshape(not use_ats ? false : ta.crossover(ats_src, 0), title = 'Long ATS', text = 'ATS', color = color.new(color.green, 0), textcolor = color.new(color.white, 0), style = shape.labelup, location = location.belowbar, size = size.small)
 plotshape(not use_ats ? false : ta.crossunder(ats_src, 0), title = 'Short ATS', text = 'ATS', color = color.new(color.red, 0), textcolor = color.new(color.white, 0), style = shape.labeldown, location = location.abovebar, size = size.small)
