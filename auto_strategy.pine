@@ -1,37 +1,32 @@
-//@version=5
-strategy("Range Filter + ATS", "Range Filter + ATS",
-         overlay=true, 
-         process_orders_on_close = true,
-         default_qty_type = strategy.cash,
-         default_qty_value = 1000000,
-         initial_capital = 1000000)
+//@version=6
+strategy('Range Filter + ATS', 'Range Filter + ATS', overlay = true, process_orders_on_close = true, default_qty_type = strategy.cash, default_qty_value = 1000000, initial_capital = 1000000)
 
 
 import jason5480/time_filters/5 as tif
 // INPUT ============================================================================================================
-gp0 = "Backtest Settings"
-usefromDate = input.bool(defval = false, title = 'From', inline = 'From Date', group=gp0)
-fromDate = input.time(defval = timestamp('01 Jan 2023 00:00'), title = '', inline = 'From Date', group=gp0)
-usetoDate = input.bool(defval = false, title = 'To ', inline = 'To Date', group=gp0)
-toDate = input.time(defval = timestamp('01 Jul 2023 00:00'), title = '', inline = 'To Date', group=gp0)
+gp0 = 'Backtest Settings'
+usefromDate = input.bool(defval = false, title = 'From', inline = 'From Date', group = gp0)
+fromDate = input.time(defval = timestamp('01 Jan 2023 00:00'), title = '', inline = 'From Date', group = gp0)
+usetoDate = input.bool(defval = false, title = 'To ', inline = 'To Date', group = gp0)
+toDate = input.time(defval = timestamp('01 Jul 2026 00:00'), title = '', inline = 'To Date', group = gp0)
 bool dateFilterApproval = tif.is_in_date_range(usefromDate, fromDate, usetoDate, toDate)
-bgcolor(dateFilterApproval ? na : color.new(color.gray, 90), title = "Time Window")
+bgcolor(dateFilterApproval ? na : color.new(color.gray, 90), title = 'Time Window')
 
-enable_longs  = input.bool(true, 'Enable Long', group=gp0, inline='enable_longs')
-enable_shorts = input.bool(true, 'Enable Short', group=gp0, inline='enable_longs')
+enable_longs = input.bool(true, 'Enable Long', group = gp0, inline = 'enable_longs')
+enable_shorts = input.bool(true, 'Enable Short', group = gp0, inline = 'enable_longs')
 
-gpss   = "Strategy settings"
-use_tp = input.bool(true, "", group = gpss, inline = "use_tp")
-tp_    = input.float(25, "TP [Points]", step=1, group=gpss, inline = "use_tp")
-use_sl = input.bool(true, "", group = gpss, inline = "use_sl")
-sl_    = input.float(12.5, "SL [Points]", step=1, group=gpss, inline = "use_sl")
+gpss = 'Strategy settings'
+use_tp = input.bool(true, '', group = gpss, inline = 'use_tp')
+tp_ = input.float(25, 'TP [Points]', step = 1, group = gpss, inline = 'use_tp')
+use_sl = input.bool(true, '', group = gpss, inline = 'use_sl')
+sl_ = input.float(12.5, 'SL [Points]', step = 1, group = gpss, inline = 'use_sl')
 
-gpat = "Auto Trend System"
-use_ats = input.bool(false, "Use ATS", group = gpat)
-ats_src = input.source(close, "AutoTrend System Histogram", group = gpat)
+gpat = 'Auto Trend System'
+use_ats = input.bool(false, 'Use ATS', group = gpat)
+ats_src = input.source(close, 'AutoTrend System Histogram', group = gpat)
 
-ats_L = ats_src>=0
-ats_S = ats_src< 0 
+ats_L = ats_src >= 0
+ats_S = ats_src < 0
 
 // Smooth Average Range
 smoothrng(x, t, m) =>
@@ -43,53 +38,49 @@ smoothrng(x, t, m) =>
 // Range Filter
 rngfilt(x, r) =>
     rngfilt = x
-    rngfilt := x > nz(rngfilt[1]) ? x - r < nz(rngfilt[1]) ? nz(rngfilt[1]) : x - r : 
-       x + r > nz(rngfilt[1]) ? nz(rngfilt[1]) : x + r
+    rngfilt := x > nz(rngfilt[1]) ? x - r < nz(rngfilt[1]) ? nz(rngfilt[1]) : x - r : x + r > nz(rngfilt[1]) ? nz(rngfilt[1]) : x + r
     rngfilt
 
 // Color variables
-upColor   = color.white
-midColor  = #90bff9
+upColor = color.white
+midColor = #90bff9
 downColor = color.blue
 
 //////////////////////////////////////////////////////////////////////////
 // Settings for 5min chart, BTCUSDC. For Other coin, change the parameters
 //////////////////////////////////////////////////////////////////////////
-gprange        = "Range Filter Settings"
-use_rf         = input.bool(false, "Use Range Filter", group = gprange)
-src            = input.source(close, "Source", group = gprange)
-per            = input.int(100, "Sampling Period", minval=1, group = gprange)
-mult           = input.float(3.0, "Range Multiplier", minval=0.1, group = gprange)
+gprange = 'Range Filter Settings'
+use_rf = input.bool(false, 'Use Range Filter', group = gprange)
+src = input.source(close, 'Source', group = gprange)
+per = input.int(100, 'Sampling Period', minval = 1, group = gprange)
+mult = input.float(3.0, 'Range Multiplier', minval = 0.1, group = gprange)
 
-smrng           = smoothrng(src, per, mult)
-filt            = rngfilt(src, smrng)
+smrng = smoothrng(src, per, mult)
+filt = rngfilt(src, smrng)
 
 // Filter Direction
-upward   = 0.0
-upward   := filt > filt[1] ? nz(upward[1]) + 1 : filt < filt[1] ? 0 : nz(upward[1])
+upward = 0.0
+upward := filt > filt[1] ? nz(upward[1]) + 1 : filt < filt[1] ? 0 : nz(upward[1])
 downward = 0.0
 downward := filt < filt[1] ? nz(downward[1]) + 1 : filt > filt[1] ? 0 : nz(downward[1])
 
 // Target Bands
-hband    = filt + smrng
-lband    = filt - smrng
+hband = filt + smrng
+lband = filt - smrng
 
 // Colors
 filtcolor = upward > 0 ? upColor : downward > 0 ? downColor : midColor
-barcolor = src > filt and src > src[1] and upward > 0 ? upColor :
-   src > filt and src < src[1] and upward > 0 ? upColor : 
-   src < filt and src < src[1] and downward > 0 ? downColor : 
-   src < filt and src > src[1] and downward > 0 ? downColor : midColor
+barcolor = src > filt and src > src[1] and upward > 0 ? upColor : src > filt and src < src[1] and upward > 0 ? upColor : src < filt and src < src[1] and downward > 0 ? downColor : src < filt and src > src[1] and downward > 0 ? downColor : midColor
 
-filtplot = plot(not (use_rf) ? na : filt, color=filtcolor, linewidth=2, title="Range Filter")
+filtplot = plot(not use_rf ? na : filt, color = filtcolor, linewidth = 2, title = 'Range Filter')
 
 // Target
-hbandplot = plot(hband, color=color.new(upColor, 70), title="High Target", display = display.none)
-lbandplot = plot(lband, color=color.new(downColor, 70), title="Low Target", display = display.none)
+hbandplot = plot(hband, color = color.new(upColor, 70), title = 'High Target', display = display.none)
+lbandplot = plot(lband, color = color.new(downColor, 70), title = 'Low Target', display = display.none)
 
 // Fills
-fill(hbandplot, filtplot, color=color.new(upColor, 90), title="High Target Range", display = display.none)
-fill(lbandplot, filtplot, color=color.new(downColor, 90), title="Low Target Range", display = display.none)
+fill(hbandplot, filtplot, color = color.new(upColor, 90), title = 'High Target Range', display = display.none)
+fill(lbandplot, filtplot, color = color.new(downColor, 90), title = 'Low Target Range', display = display.none)
 
 // Bar Color
 // barcolor(barcolor)
@@ -97,10 +88,8 @@ fill(lbandplot, filtplot, color=color.new(downColor, 90), title="Low Target Rang
 // Break Outs
 longCond = bool(na)
 shortCond = bool(na)
-longCond := src > filt and src > src[1] and upward > 0 or 
-   src > filt and src < src[1] and upward > 0
-shortCond := src < filt and src < src[1] and downward > 0 or 
-   src < filt and src > src[1] and downward > 0
+longCond := src > filt and src > src[1] and upward > 0 or src > filt and src < src[1] and upward > 0
+shortCond := src < filt and src < src[1] and downward > 0 or src < filt and src > src[1] and downward > 0
 
 CondIni = 0
 CondIni := longCond ? 1 : shortCond ? -1 : CondIni[1]
@@ -113,84 +102,86 @@ short_range = shortCond and CondIni[1] == 1
 
 // ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
 // ENTRY EXIT LOGIC==================================================================================================
-long = switch
-    use_ats and use_rf          => (long_range and ats_src>=0) or ta.crossover(ats_src,0)
-    use_ats and not (use_rf)    => ta.crossover(ats_src,0)
-    not (use_ats) and use_rf    => long_range
+long = switch 
+    use_ats and use_rf => long_range and ats_src >= 0 or ta.crossover(ats_src, 0)
+    use_ats and not use_rf => ta.crossover(ats_src, 0)
+    not use_ats and use_rf => long_range
 
-short = switch
-    use_ats and use_rf          => (short_range and ats_src<0) or ta.crossunder(ats_src,0)
-    use_ats and not (use_rf)    => ta.crossunder(ats_src,0)
-    not (use_ats) and use_rf    => short_range
+short = switch 
+    use_ats and use_rf => short_range and ats_src < 0 or ta.crossunder(ats_src, 0)
+    use_ats and not use_rf => ta.crossunder(ats_src, 0)
+    not use_ats and use_rf => short_range
 
 
-longAllowed  = enable_longs and dateFilterApproval 
-shortAllowed = enable_shorts and dateFilterApproval 
+longAllowed = enable_longs and dateFilterApproval
+shortAllowed = enable_shorts and dateFilterApproval
 
-longCondition  = long and longAllowed //and ats_L
+longCondition = long and longAllowed //and ats_L
 shortCondition = short and shortAllowed //and ats_S
 
-longExit = switch
-    use_ats and use_rf          => short_range or ta.crossunder(ats_src,0)
-    use_ats and not (use_rf)    => ta.crossunder(ats_src,0)
-    not (use_ats) and use_rf    => short_range
+longExit = switch 
+    use_ats and use_rf => short_range or ta.crossunder(ats_src, 0)
+    use_ats and not use_rf => ta.crossunder(ats_src, 0)
+    not use_ats and use_rf => short_range
 
-shortExit = switch
-    use_ats and use_rf          => long_range or ta.crossover(ats_src,0)
-    use_ats and not (use_rf)    => ta.crossover(ats_src,0)
-    not (use_ats) and use_rf    => long_range
+shortExit = switch 
+    use_ats and use_rf => long_range or ta.crossover(ats_src, 0)
+    use_ats and not use_rf => ta.crossover(ats_src, 0)
+    not use_ats and use_rf => long_range
 
 
-plotshape(not (use_rf) ? na : (long_range), title='Long RF', text = "RF", color=color.new(color.green, 0), textcolor=color.new(color.white, 0), style=shape.labelup, location=location.belowbar, size=size.small)
-plotshape(not (use_rf) ? na : (short_range), title='Short RF', text = "RF",color=color.new(color.red, 0), textcolor=color.new(color.white, 0), style=shape.labeldown, location=location.abovebar, size=size.small)
+plotshape(not use_rf ? na : long_range, title = 'Long RF', text = 'RF', color = color.new(color.green, 0), textcolor = color.new(color.white, 0), style = shape.labelup, location = location.belowbar, size = size.small)
+plotshape(not use_rf ? na : short_range, title = 'Short RF', text = 'RF', color = color.new(color.red, 0), textcolor = color.new(color.white, 0), style = shape.labeldown, location = location.abovebar, size = size.small)
 
-plotshape(not (use_ats) ? na : (ta.crossover(ats_src,0)), title='Long ATS', text = "ATS", color=color.new(color.green, 0), textcolor=color.new(color.white, 0), style=shape.labelup, location=location.belowbar, size=size.small)
-plotshape(not (use_ats) ? na : (ta.crossunder(ats_src,0)), title='Short ATS', text = "ATS",color=color.new(color.red, 0), textcolor=color.new(color.white, 0), style=shape.labeldown, location=location.abovebar, size=size.small)
+plotshape(not use_ats ? false : ta.crossover(ats_src, 0), title = 'Long ATS', text = 'ATS', color = color.new(color.green, 0), textcolor = color.new(color.white, 0), style = shape.labelup, location = location.belowbar, size = size.small)
+plotshape(not use_ats ? false : ta.crossunder(ats_src, 0), title = 'Short ATS', text = 'ATS', color = color.new(color.red, 0), textcolor = color.new(color.white, 0), style = shape.labeldown, location = location.abovebar, size = size.small)
 
-var float longEntry  = na
-var float longSL     = na
-var float longTP     = na
+var float longEntry = na
+var float longSL = na
+var float longTP = na
 
 var float shortEntry = na
-var float shortSL    = na
-var float shortTP    = na
+var float shortSL = na
+var float shortTP = na
 
-var int  dir      = na
+var int dir = na
 
 // POSITION ORDERS ==================================================================================================
-if not (dateFilterApproval)
+if not dateFilterApproval
     strategy.cancel_all()
 
-if longCondition and strategy.position_size<=0
-    strategy.entry("Long", strategy.long)
-    dir         := 1
-    longEntry   := close
-    longSL      := not (use_sl) ? na : longEntry - sl_
-    longTP      := not (use_tp) ? na : longEntry + tp_
+if longCondition and strategy.position_size <= 0
+    strategy.entry('Long', strategy.long)
+    dir := 1
+    longEntry := close
+    longSL := not use_sl ? na : longEntry - sl_
+    longTP := not use_tp ? na : longEntry + tp_
+    longTP
 
 else if shortExit
     strategy.close('Short', comment = 'Short Close')
 
-if shortCondition and strategy.position_size>=0
-    strategy.entry("Short", strategy.short)
-    dir          := -1
-    shortEntry   := close
-    shortSL      := not (use_sl) ? na : shortEntry + sl_
-    shortTP      := not (use_tp) ? na : shortEntry - tp_
+if shortCondition and strategy.position_size >= 0
+    strategy.entry('Short', strategy.short)
+    dir := -1
+    shortEntry := close
+    shortSL := not use_sl ? na : shortEntry + sl_
+    shortTP := not use_tp ? na : shortEntry - tp_
+    shortTP
 
 else if longExit
     strategy.close('Long', comment = 'Long Close')
 
-strategy.exit('Long Exit' , 'Long' , limit = longTP ,stop = longSL, comment_profit = 'Long TP', comment_loss = "Long SL")
-strategy.exit('Short Exit', 'Short', limit = shortTP,stop = shortSL, comment_profit = 'Short TP', comment_loss = "Short SL")
+strategy.exit('Long Exit', 'Long', limit = longTP, stop = longSL, comment_profit = 'Long TP', comment_loss = 'Long SL')
+strategy.exit('Short Exit', 'Short', limit = shortTP, stop = shortSL, comment_profit = 'Short TP', comment_loss = 'Short SL')
 
 
 // PLOTS ==================================================================================================
 disp = display.pane
-plot(strategy.position_size > 0 ? longEntry : na, title='Long Entry', linewidth=1, style=plot.style_steplinebr, color=chart.fg_color, display = disp)
-plot(strategy.position_size > 0 ? longSL    : na, title='Long SL'   , linewidth=2, style=plot.style_steplinebr, color=color.new(color.red, 0), display = disp, force_overlay = true)
-plot(strategy.position_size > 0 ? longTP    : na, title='Long TP'   , linewidth=1, style=plot.style_linebr    , color=color.new(color.green, 0), display = disp)
+plot(strategy.position_size > 0 ? longEntry : na, title = 'Long Entry', linewidth = 1, style = plot.style_steplinebr, color = chart.fg_color, display = disp)
+plot(strategy.position_size > 0 ? longSL : na, title = 'Long SL', linewidth = 2, style = plot.style_steplinebr, color = color.new(color.red, 0), display = disp, force_overlay = true)
+plot(strategy.position_size > 0 ? longTP : na, title = 'Long TP', linewidth = 1, style = plot.style_linebr, color = color.new(color.green, 0), display = disp)
 
-plot(strategy.position_size < 0 ? shortEntry : na, title='Short Entry', linewidth=1, style=plot.style_steplinebr, color=chart.fg_color, display = disp)
-plot(strategy.position_size < 0 ? shortSL    : na, title='Short SL'   , linewidth=2, style=plot.style_steplinebr, color=color.new(color.red, 0), display = disp, force_overlay = true)
-plot(strategy.position_size < 0 ? shortTP    : na, title='Short TP'   , linewidth=1, style=plot.style_linebr    , color=color.new(color.green, 0), display = disp)
+plot(strategy.position_size < 0 ? shortEntry : na, title = 'Short Entry', linewidth = 1, style = plot.style_steplinebr, color = chart.fg_color, display = disp)
+plot(strategy.position_size < 0 ? shortSL : na, title = 'Short SL', linewidth = 2, style = plot.style_steplinebr, color = color.new(color.red, 0), display = disp, force_overlay = true)
+plot(strategy.position_size < 0 ? shortTP : na, title = 'Short TP', linewidth = 1, style = plot.style_linebr, color = color.new(color.green, 0), display = disp)
